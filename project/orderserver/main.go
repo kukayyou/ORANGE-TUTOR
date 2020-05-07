@@ -1,78 +1,58 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"github.com/micro/go-micro/client/selector"
+	"github.com/kukayyou/commonlib/myconfig"
+	"github.com/kukayyou/commonlib/myhttp"
+	"github.com/kukayyou/commonlib/mylog"
 	"github.com/micro/go-micro/registry"
+	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/web"
-	"github.com/micro/go-plugins/registry/consul"
-	"net/http"
+	//"github.com/micro/go-plugins/registry/consul"
+	"go.uber.org/zap"
+	"orderserver/config"
 	"orderserver/routers"
-	"time"
 )
 
-var consulReg registry.Registry
-
-func init(){
-	//新建一个consul注册的地址，也就是我们consul服务启动的机器ip+端口
-	consulReg = consul.NewRegistry(
-		registry.Addrs("192.168.109.131:8500"),
-	)
-}
+var sugarLogger *zap.SugaredLogger
 
 func main() {
+	//初始化配置
+	//initConfig()
+	//初始化日志
+	//initLog()
 	//初始化路由
 	ginRouter := routers.InitRouters()
-
+	//新建一个consul注册的地址，也就是我们consul服务启动的机器ip+端口
+	/*consulReg := consul.NewRegistry(
+		registry.Addrs(config.ConsulAddress),
+	)*/
+	etcdReg := etcd.NewRegistry(
+		registry.Addrs("192.168.109.131:12379"))
+	myhttp.EtcdAddr = "192.168.109.131:12379"
 	//注册服务
 	microService:= web.NewService(
-		web.Name("orderserver"),
+		web.Name("api.tutor.com.orderserver"),
 		//web.RegisterTTL(time.Second*30),//设置注册服务的过期时间
 		//web.RegisterInterval(time.Second*20),//设置间隔多久再次注册服务
 		web.Address(":18002"),
 		web.Handler(ginRouter),
-		web.Registry(consulReg),
+		web.Registry(etcdReg),
 		)
-
-	hostAddress := GetServiceAddr("userserver")
-	if len(hostAddress) <= 0{
-		fmt.Println("hostAddress is null")
-	}else{
-		url := "http://"+ hostAddress + "/users"
-		response, _ := http.Post(url, "application/json;charset=utf-8",bytes.NewBuffer([]byte("")))
-
-		fmt.Println(response)
-	}
 
 	microService.Run()
 }
 
-func GetServiceAddr(serviceName string)(address string){
-	var retryCount int
-	for{
-		servers,err :=consulReg.GetService(serviceName)
-		if err !=nil {
-			fmt.Println(err.Error())
-		}
-		var services []*registry.Service
-		for _,value := range servers{
-			fmt.Println(value.Name, ":", value.Version)
-			services = append(services, value)
-		}
-		next := selector.RoundRobin(services)
-		if node , err := next();err == nil{
-			address = node.Address
-		}
-		if len(address) > 0{
-			return
-		}
-		//重试次数++
-		retryCount++
-		time.Sleep(time.Second * 1)
-		//重试5次为获取返回空
-		if retryCount >= 5{
-			return
-		}
-	}
+func initConfig() {
+	myconfig.LoadConfig("./conf/config.conf")
+	config.ConsulAddress = myconfig.Config.GetString("consul_address")
+	config.LogPath =  myconfig.Config.GetString("log_path")
+	config.LogLevel =  int8(myconfig.Config.GetInt64("log_level"))
+	config.LogMaxAge =  int(myconfig.Config.GetInt64("log_max_age"))
+	config.LogMaxSize =  int(myconfig.Config.GetInt64("log_max_size"))
+	config.LogMaxBackups =  int(myconfig.Config.GetInt64("log_max_backups"))
+}
+
+func init() {
+	initConfig()
+	mylog.InitLog(config.LogPath,"orderserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, config.LogLevel)
 }

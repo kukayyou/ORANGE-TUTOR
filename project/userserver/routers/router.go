@@ -1,12 +1,14 @@
 package routers
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"userserver/controllers"
+)
 
 func InitRouters() *gin.Engine {
 	ginRouter := gin.Default()
-	ginRouter.POST("/users/", func(context *gin.Context) {
-		context.String(200, "get userinfos")
-	})
-
+	root := ginRouter.Group("/userserver")
+	userGroup := root.Group("/user")
+	userGroup.POST("/infos", controllers.GetUserInfosApi)
 	return ginRouter
 }

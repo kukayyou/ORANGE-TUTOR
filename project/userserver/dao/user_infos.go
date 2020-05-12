@@ -44,7 +44,7 @@ func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) 
 }
 
 func (uc UserInfo) UpdateUserInfo(requestID string) error {
-	sql := `INSERT INTO user (user_id,user_name,passwd,mobile,sex,age,email,university) VALUES (%d,'%s','%s','%s','%s',%d,'%s') ON DUPLICATE KEY UPDATE user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s'`
+	sql := `INSERT INTO user (user_id,user_name,passwd,mobile,sex,age,email,university) VALUES (%d,'%s','%s','%s','%s',%d,'%s','%s') ON DUPLICATE KEY UPDATE user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s'`
 	sql = fmt.Sprintf(sql, uc.UserID,
 		mytypeconv.MysqlEscapeString(uc.UserName),
 		uc.Passwd,

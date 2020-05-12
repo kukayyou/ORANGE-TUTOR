@@ -20,7 +20,7 @@ type UserInfo struct {
 }
 
 func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) {
-	sql := `SELECT user_id,user_name,passwd,mobile,sex,age,email  FROM user WHERE user_id = %d`
+	sql := `SELECT user_id,user_name,passwd,mobile,sex,age,email,university  FROM user WHERE user_id = %d`
 	sql = fmt.Sprintf(sql, uc.UserID)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
@@ -44,7 +44,7 @@ func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) 
 }
 
 func (uc UserInfo) UpdateUserInfo(requestID string) error {
-	sql := `INSERT INTO user (user_id,user_name,passwd,mobile,sex,age,email) VALUES (%d,'%s','%s','%s','%s',%d,'%s') ON DUPLICATE KEY UPDATE user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s'`
+	sql := `INSERT INTO user (user_id,user_name,passwd,mobile,sex,age,email,university) VALUES (%d,'%s','%s','%s','%s',%d,'%s') ON DUPLICATE KEY UPDATE user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s'`
 	sql = fmt.Sprintf(sql, uc.UserID,
 		mytypeconv.MysqlEscapeString(uc.UserName),
 		uc.Passwd,
@@ -52,12 +52,14 @@ func (uc UserInfo) UpdateUserInfo(requestID string) error {
 		uc.Sex,
 		uc.Age,
 		mytypeconv.MysqlEscapeString(uc.Email),
+		mytypeconv.MysqlEscapeString(uc.University),
 		mytypeconv.MysqlEscapeString(uc.UserName),
 		uc.Passwd,
 		uc.Mobile,
 		uc.Sex,
 		uc.Age,
-		mytypeconv.MysqlEscapeString(uc.Email))
+		mytypeconv.MysqlEscapeString(uc.Email),
+		mytypeconv.MysqlEscapeString(uc.University))
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
 	o := orm.NewOrm()
@@ -114,5 +116,6 @@ func parseResult(data orm.Params) (userInfo UserInfo) {
 	userInfo.Mobile = mytypeconv.ToString(data["mobile"])
 	userInfo.Sex = mytypeconv.ToString(data["sex"])
 	userInfo.Age, _ = mytypeconv.ToUint64(data["age"])
+	userInfo.University = mytypeconv.ToString(data["university"])
 	return
 }

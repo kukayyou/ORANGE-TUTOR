@@ -1,11 +1,10 @@
 package controllers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/kukayyou/commonlib/myhttp"
 	"github.com/kukayyou/commonlib/mylog"
-	"encoding/json"
-	"time"
 )
 
 type GetOrderController struct {
@@ -13,46 +12,31 @@ type GetOrderController struct {
 }
 
 type RequestData struct {
-	Data int `json:"data"`
-}
-
-type OrderInfo struct {
-	OrderID   string                 `json:"orderId"`
-	UserInfos map[string]interface{} `json:"userInfos"`
-}
-
-type UserInfo struct {
-	UserID   uint64 `json:"userId"`
-	UserName string `json:"userName"`
-	Mobile   string `json:"mobile"`
-	Email    string `json:"email"`
-	Sex      string `json:"sex"` //male or female
-	Age      uint64 `json:"age"`
+	UserID int64 `json:"userId"`//userid
+	Token string `json:"token"`//token
 }
 
 func (this GetOrderController)GetOrderInfosApi(c *gin.Context) {
+	defer this.FinishResponse(c)
 	this.Prepare(c)
+
 	var params RequestData
-	json.Unmarshal(this.ReqParams, &params)
+	if err :=json.Unmarshal(this.ReqParams, &params);err!= nil{
+		mylog.Error("requestID:%s, Unmarshal request error:%s", this.GetRequestId(), err.Error())
+		this.Resp.Code = PARAMS_PARSE_ERROR
+		this.Resp.Msg = "Unmarshal request failed!"
+		return
+	}
 
-	var orderInfo OrderInfo
-	mylog.Info("requestID:%s:, GetOrderInfosApi start ... ", this.GetRequestId())
-	data := orderInfo.GetOrderInfos(this.GetRequestId())
-	c.JSON(200,
-		gin.H{
-			"status": "1",
-			"data":   data,
-		})
-
-	go func() {
-		time.Sleep(time.Second*2)
-		mylog.Info("requestID:%s:, 延时日志：%s", this.GetRequestId(), time.Now().Format("2006-01-02 15:04:05"))
-	}()
+	if err:= this.UserCheck(params.UserID, params.Token);err!=nil{
+		mylog.Error("requestID:%s, UserCheck error:%s", this.GetRequestId(), err.Error())
+		return
+	}
 
 	return
 }
 
-func (oi *OrderInfo) GetOrderInfos(requestID string) []OrderInfo {
+/*func (oi *OrderInfo) GetOrderInfos(requestID string) []OrderInfo {
 	var orderInfo OrderInfo
 	if userInfos := GetUserInfoByIDs(requestID);userInfos!=nil{
 		orderInfo.UserInfos = userInfos
@@ -61,7 +45,7 @@ func (oi *OrderInfo) GetOrderInfos(requestID string) []OrderInfo {
 		return []OrderInfo{orderInfo}
 	}
 	return nil
-}
+}*/
 
 func GetUserInfoByIDs(requestID string) map[string]interface{} {
 	resp := myhttp.RequestWithHytrix("api.tutor.com.userserver", "/userserver/user/infos", map[string]string{})

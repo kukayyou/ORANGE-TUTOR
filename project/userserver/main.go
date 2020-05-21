@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	defer mylog.SugarLogger.Sync()
 	if err:= initMySQL();err != nil{
 		return
 	}

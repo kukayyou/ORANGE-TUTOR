@@ -9,19 +9,26 @@ import (
 
 type UserInfo struct {
 	UserID     int64  `json:"userId"`
-	UserName   string `json:"userName"`
-	Passwd     string `json:"passwd"`
-	Mobile     string `json:"mobile"`
-	Email      string `json:"email"`
-	Sex        string `json:"sex"` //male or female
-	Age        uint64 `json:"age"`
-	University string `json:"university"`
+	UserType   int64  `json:"userType"`   //0：大学生家教，1：家长
+	UserName   string `json:"userName"`   //不支持修改
+	NickName   string `json:"nickName"`   //昵称
+	Passwd     string `json:"passwd"`     //密码
+	Mobile     string `json:"mobile"`     //手机号
+	Email      string `json:"email"`      //邮箱
+	Sex        string `json:"sex"`        //male or female,不支持修改
+	Age        uint64 `json:"age"`        //年龄
+	University string `json:"university"` //学校，不支持修改
+	Location   string `json:"location"`   //定位
+	ProfilePic string `json:"profilePic"` //头像
 	Token      string `json:"token"`
 }
 
+const USERSELECTPARAMS = "user_id,user_type,user_name,passwd,mobile,sex,age,email,university,nick_name,location,profile_pic"
+
 func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) {
-	sql := `SELECT user_id,user_name,passwd,mobile,sex,age,email,university  FROM user WHERE user_id = %d`
-	sql = fmt.Sprintf(sql, uc.UserID)
+	sql := `SELECT %s FROM user WHERE user_id = %d`
+	sql = fmt.Sprintf(sql, USERSELECTPARAMS, uc.UserID)
+
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
 	var (
@@ -38,14 +45,47 @@ func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) 
 		return userInfo, fmt.Errorf(("GetUserInfo result is null"))
 	}
 	mylog.Info("requestID:%s, GetUserInfo result:%v", requestID, result)
-	userInfo = parseResult(result[0])
+	userInfos := parseResult(result)
 
-	return userInfo, nil
+	return userInfos[0], nil
 }
 
-func (uc UserInfo) UpdateUserInfo(requestID string) error {
-	sql := `INSERT INTO user (user_id,user_name,passwd,mobile,sex,age,email,university) VALUES (%d,'%s','%s','%s','%s',%d,'%s','%s') ON DUPLICATE KEY UPDATE user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s'`
-	sql = fmt.Sprintf(sql, uc.UserID,
+func (uc UserInfo) GetUserInfoByUserIDs(requestID string, userIDs []int64) (userInfos []UserInfo, err error) {
+	var sql string
+	if len(userIDs) > 0 {
+		sql = `SELECT %s FROM user WHERE user_id IN ('%s')`
+		sql = fmt.Sprintf(sql, USERSELECTPARAMS, mytypeconv.JoinInt64Array(userIDs, "','"))
+	} else {
+		return nil, fmt.Errorf("UserIDs is nil")
+	}
+
+	mylog.Info("requestID %s, sql:%s", requestID, sql)
+
+	var (
+		result []orm.Params
+	)
+
+	o := orm.NewOrm()
+	o.Using("default")
+	if num, err := o.Raw(sql).Values(&result); err != nil {
+		mylog.Error("requestID:%s, GetUserInfo return error:%s", requestID, err.Error())
+		return nil, err
+	} else if num <= 0 {
+		mylog.Error("requestID:%s, GetUserInfo result is null", requestID)
+		return nil, fmt.Errorf(("GetUserInfo result is null"))
+	}
+	mylog.Info("requestID:%s, GetUserInfo result:%v", requestID, result)
+	userInfos = parseResult(result)
+
+	return userInfos, nil
+}
+
+func (uc UserInfo) CreateOrUpdateUserInfo(requestID string) error {
+	sql := `INSERT INTO user (%s) VALUES (%d,%d,'%s','%s','%s','%s',%d,'%s','%s','%s','%s','%s') ON DUPLICATE KEY UPDATE user_type=%d,user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s',nick_name='%s',location='%s',profile_pic='%s'`
+	sql = fmt.Sprintf(sql,
+		USERSELECTPARAMS,
+		uc.UserID,
+		uc.UserType,
 		mytypeconv.MysqlEscapeString(uc.UserName),
 		uc.Passwd,
 		uc.Mobile,
@@ -53,33 +93,39 @@ func (uc UserInfo) UpdateUserInfo(requestID string) error {
 		uc.Age,
 		mytypeconv.MysqlEscapeString(uc.Email),
 		mytypeconv.MysqlEscapeString(uc.University),
+		uc.NickName,
+		uc.Location,
+		uc.ProfilePic,
+		uc.UserType,
 		mytypeconv.MysqlEscapeString(uc.UserName),
 		uc.Passwd,
 		uc.Mobile,
 		uc.Sex,
 		uc.Age,
 		mytypeconv.MysqlEscapeString(uc.Email),
-		mytypeconv.MysqlEscapeString(uc.University))
+		mytypeconv.MysqlEscapeString(uc.University),
+		uc.NickName,
+		uc.Location,
+		uc.ProfilePic)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
 	o := orm.NewOrm()
 	o.Using("default")
 	if _, err := o.Raw(sql).Exec(); err != nil {
-		mylog.Error("requestID:%s, getLastUserID return error:%s", requestID, err.Error())
+		mylog.Error("requestID:%s, CreateOrUpdateUserInfo return error:%s", requestID, err.Error())
 		return err
 	}
-	mylog.Info("requestID:%s, getLastUserID result:%v", requestID)
+	mylog.Info("requestID:%s, CreateOrUpdateUserInfo result:%v", requestID, uc)
 
 	return nil
 }
 
 func (uc UserInfo) RegisterUserInfo(requestID string) (userInfo UserInfo, err error) {
-
 	if uc.UserID, err = getLastUserID(requestID); err != nil {
 		mylog.Error("requestID:%s, create userId failed, error:%s", requestID, err.Error())
 		return uc, err
 	}
-	if err = uc.UpdateUserInfo(requestID); err != nil {
+	if err = uc.CreateOrUpdateUserInfo(requestID); err != nil {
 		mylog.Error("requestID:%s, create userInfo failed, error:%s", requestID, err.Error())
 		return uc, err
 	}
@@ -93,6 +139,7 @@ func getLastUserID(requestID string) (int64, error) {
 
 	var (
 		result orm.ParamsList
+		userID int64
 	)
 
 	o := orm.NewOrm()
@@ -105,17 +152,32 @@ func getLastUserID(requestID string) (int64, error) {
 	}
 	mylog.Info("requestID:%s, getLastUserID result:%v", requestID, result)
 
-	return mytypeconv.ToInt64(result[0], 0) + 1, nil
+	if mytypeconv.ToInt64(result[0], 0) == 0 {
+		userID = mytypeconv.ToInt64(result[0], 0) + 1000001
+	} else {
+		userID = mytypeconv.ToInt64(result[0], 0) + 1
+	}
+	return userID, nil
 }
 
-func parseResult(data orm.Params) (userInfo UserInfo) {
-	userInfo.UserID = mytypeconv.ToInt64(data["user_id"], 0)
-	userInfo.UserName = mytypeconv.ToString(data["user_name"])
-	userInfo.Passwd = mytypeconv.ToString(data["passwd"])
-	userInfo.Email = mytypeconv.ToString(data["email"])
-	userInfo.Mobile = mytypeconv.ToString(data["mobile"])
-	userInfo.Sex = mytypeconv.ToString(data["sex"])
-	userInfo.Age, _ = mytypeconv.ToUint64(data["age"])
-	userInfo.University = mytypeconv.ToString(data["university"])
+func parseResult(data []orm.Params) (userInfos []UserInfo) {
+	userInfos = make([]UserInfo, 0)
+	for _, value := range data {
+		userInfo := UserInfo{
+			UserID:     mytypeconv.ToInt64(value["user_id"], 0),
+			UserType:   mytypeconv.ToInt64(value["user_type"], 0),
+			UserName:   mytypeconv.ToString(value["user_name"]),
+			Passwd:     mytypeconv.ToString(value["passwd"]),
+			Email:      mytypeconv.ToString(value["email"]),
+			Mobile:     mytypeconv.ToString(value["mobile"]),
+			Sex:        mytypeconv.ToString(value["sex"]),
+			Age:        mytypeconv.ToUint64(value["age"]),
+			University: mytypeconv.ToString(value["university"]),
+			NickName:   mytypeconv.ToString(value["nick_name"]),
+			Location:   mytypeconv.ToString(value["location"]),
+			ProfilePic: mytypeconv.ToString(value["profile_pic"]),
+		}
+		userInfos = append(userInfos, userInfo)
+	}
 	return
 }

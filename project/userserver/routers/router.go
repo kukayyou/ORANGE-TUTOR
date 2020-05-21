@@ -11,7 +11,7 @@ func InitRouters() *gin.Engine {
 	userGroup := root.Group("/user")
 	userGroup.POST("/registry", controllers.UserRegisterController{}.UserRegisterApi)
 	userGroup.POST("/login", controllers.UserLoginController{}.UserLoginApi)
-	userGroup.POST("/infos", controllers.UserInfosController{}.GetUserInfosApi)
-	userGroup.POST("/update", controllers.UserInfosController{}.UpdateUserInfosApi)
+	userGroup.POST("/infos", controllers.UserInfosController{}.GetUserInfoApi)
+	userGroup.POST("/update", controllers.UserInfosController{}.UpdateUserInfoApi)
 	return ginRouter
 }

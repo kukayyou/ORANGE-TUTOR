@@ -18,6 +18,9 @@ const (
 	USER_LOGIN_ERROR        = 1001 + iota //登录错误
 	USER_GET_INFOS_ERROR    = 1001 + iota //获取用户信息错误
 	USER_UPDATE_INFOS_ERROR = 1001 + iota //更新用户信息错误
+	DEMAND_CREATE_ERROR     = 1001 + iota //创建需求错误
+	DEMAND_QUERY_ERROR      = 1001 + iota //查询需求错误
+	DEMAND_DELETE_ERROR     = 1001 + iota //删除需求错误
 )
 
 type BaseController struct {
@@ -35,10 +38,11 @@ type Response struct {
 
 func (bc *BaseController) Prepare(c *gin.Context) {
 	bc.SetRequestId()
+	bc.SetRequestUrl(c.Request.RequestURI)
 	bc.Resp.RequestID = bc.GetRequestId()
 	bc.ReqParams, _ = ioutil.ReadAll(c.Request.Body)
 
-	mylog.Info("requestId:%s, params : %s", bc.GetRequestId(), string(bc.ReqParams))
+	mylog.Info("requestId:%s, requestUrl:%s, params : %s", bc.GetRequestId(), bc.GetRequestUrl(), string(bc.ReqParams))
 }
 
 func (bc *BaseController) FinishResponse(c *gin.Context) {
@@ -53,7 +57,7 @@ func (bc *BaseController) FinishResponse(c *gin.Context) {
 			"data":      bc.Resp.Data,
 		})
 	r, _ := json.Marshal(bc.Resp)
-	mylog.Info("response data:%s", string(r))
+	mylog.Info("requestUrl:%s, response data:%s", bc.GetRequestUrl(), string(r))
 }
 
 func (bc *BaseController) UserCheck(userID int64, tokenData string) error {

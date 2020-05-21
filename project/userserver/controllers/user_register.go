@@ -13,8 +13,9 @@ type UserRegisterController struct {
 }
 
 type RegisterRequest struct {
-	UserName string `json:"userName"`
-	Passwd   string `json:"passwd"`
+	UserName string `json:"userName"` //用户名
+	UserType int    `json:"userType"` //0：大学生家教，1：家长
+	Passwd   string `json:"passwd"`   //密码
 }
 
 func (this UserRegisterController) UserRegisterApi(c *gin.Context) {
@@ -36,7 +37,6 @@ func (this UserRegisterController) UserRegisterApi(c *gin.Context) {
 	}
 
 	userInfo := dao.UserInfo{
-		UserID:   0,
 		UserName: params.UserName,
 		Passwd:   params.Passwd,
 	}

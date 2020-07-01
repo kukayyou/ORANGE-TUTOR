@@ -5,19 +5,22 @@ import (
 	"github.com/astaxie/beego/orm"
 	"github.com/kukayyou/commonlib/mylog"
 	"github.com/kukayyou/commonlib/mytypeconv"
+	"strings"
 )
 
 //用于管理教师的技能
 type SkillInfo struct {
-	UserID    int64  `json:"userId"`
-	SkillID   int64  `json:"skillId"`
-	SkillName string `json:"skillName"`
-	Desc      string `json:"desc"`
+	UserID    int64    `json:"userId"`
+	SkillID   int64    `json:"skillId"`   //技能id
+	SkillName string   `json:"skillName"` //技能名称
+	Price     string   `json:"price"`     //报价
+	Flag      []string `flag`             //技能标签
+	Desc      string   `json:"desc"`
 }
 
-const SKILLSELECTPARAMS = "id, user_id, skill_name, description"
+const SKILLSELECTPARAMS = "id, user_id, skill_name, description, price, flag"
 
-func (si SkillInfo) GetSikllInfosByUserID(requestID string) ([]SkillInfo, error) {
+func (si *SkillInfo) GetSikllInfosByUserID(requestID string) (*[]SkillInfo, error) {
 	sql := `SELECT %s FROM user_skill WHERE user_id = %d ORDER BY id DESC`
 	sql = fmt.Sprintf(sql, SKILLSELECTPARAMS, si.UserID)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
@@ -36,12 +39,12 @@ func (si SkillInfo) GetSikllInfosByUserID(requestID string) ([]SkillInfo, error)
 		return nil, fmt.Errorf(("GetSikllInfosByUserID result is null"))
 	}
 	mylog.Info("requestID:%s, GetSikllInfosByUserID result:%v", requestID, result)
-	skillInfos := parseSkillResult(result)
+	skillInfos := parseSkillResult(&result)
 
-	return skillInfos, nil
+	return &skillInfos, nil
 }
 
-func (si SkillInfo) GetSkillInfoBySkillID(requestID string) (SkillInfo, error) {
+func (si *SkillInfo) GetSkillInfoBySkillID(requestID string) (*SkillInfo, error) {
 	sql := `SELECT %s FROM user_skill WHERE user_id=%d AND id = %d`
 	sql = fmt.Sprintf(sql, SKILLSELECTPARAMS, si.UserID, si.SkillID)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
@@ -60,24 +63,31 @@ func (si SkillInfo) GetSkillInfoBySkillID(requestID string) (SkillInfo, error) {
 		return si, fmt.Errorf(("GetSkillInfoBySkillID result is null"))
 	}
 	mylog.Info("requestID:%s, GetSkillInfoBySkillID result:%v", requestID, result)
-	skillInfos := parseSkillResult(result)
-
-	return skillInfos[0], nil
+	skillInfos := parseSkillResult(&result)
+	if len(skillInfos) > 0 {
+		return &skillInfos[0], nil
+	} else {
+		return nil, fmt.Errorf("skillInfos is nil")
+	}
 }
 
-func (si SkillInfo) CreateOrUpdateSkillInfo(requestID string) (SkillInfo, error) {
+func (si *SkillInfo) CreateOrUpdateSkillInfo(requestID string) (*SkillInfo, error) {
 	if si.SkillID == 0 {
 		si.SkillID, _ = getLastSkillID(requestID)
 	}
-	sql := `INSERT INTO user_skill (%s) VALUES (%d,%d,'%s','%s') ON DUPLICATE KEY UPDATE skill_name='%s',description='%s'`
+	sql := `INSERT INTO user_skill (%s) VALUES (%d,%d,'%s','%s') ON DUPLICATE KEY UPDATE skill_name='%s',description='%s',price='%s',flag='%s'`
 	sql = fmt.Sprintf(sql,
 		SKILLSELECTPARAMS,
 		si.SkillID,
 		si.UserID,
 		mytypeconv.MysqlEscapeString(si.SkillName),
 		mytypeconv.MysqlEscapeString(si.Desc),
+		mytypeconv.MysqlEscapeString(si.Price),
+		mytypeconv.MysqlEscapeString(strings.Join(si.Flag, ";")),
 		mytypeconv.MysqlEscapeString(si.SkillName),
 		mytypeconv.MysqlEscapeString(si.Desc),
+		mytypeconv.MysqlEscapeString(si.Price),
+		mytypeconv.MysqlEscapeString(strings.Join(si.Flag, ";")),
 	)
 	mylog.Info("requestID:%s, sql:%s", requestID, sql)
 
@@ -95,9 +105,9 @@ func (si SkillInfo) CreateOrUpdateSkillInfo(requestID string) (SkillInfo, error)
 	return si, nil
 }
 
-func (si SkillInfo) DeleteSkillInfo(requestID string, skillIDs []int64) error {
+func (si *SkillInfo) DeleteSkillInfo(requestID string, skillIDs *[]int64) error {
 	sql := `DELETE FROM user_skill where id  IN ('%s')`
-	sql = fmt.Sprintf(sql, mytypeconv.JoinInt64Array(skillIDs, "','"))
+	sql = fmt.Sprintf(sql, mytypeconv.JoinInt64Array(*skillIDs, "','"))
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
 	o := orm.NewOrm()
@@ -132,17 +142,19 @@ func getLastSkillID(requestID string) (int64, error) {
 	return mytypeconv.ToInt64(result[0], 0) + 1, nil
 }
 
-func parseSkillResult(data []orm.Params) (skillInfos []SkillInfo) {
-	skillInfos = make([]SkillInfo, 0)
-	for _, value := range data {
+func parseSkillResult(data *[]orm.Params) []SkillInfo {
+	skillInfos := make([]SkillInfo, 0)
+	for _, value := range *data {
 		skill := SkillInfo{
 			SkillID:   mytypeconv.ToInt64(value["id"], 0),
 			UserID:    mytypeconv.ToInt64(value["user_id"], 0),
 			SkillName: mytypeconv.ToString(value["skill_name"]),
 			Desc:      mytypeconv.ToString(value["description"]),
+			Price:     mytypeconv.ToString(value["Price"]),
+			Flag:      strings.Split(mytypeconv.ToString(value["flag"]), ";"),
 		}
 		skillInfos = append(skillInfos, skill)
 	}
 
-	return
+	return skillInfos
 }

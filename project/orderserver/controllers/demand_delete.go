@@ -26,12 +26,12 @@ func (this DemandInfoController) DeleteDemandInfosApi(c *gin.Context) {
 		this.Resp.Msg = "Unmarshal request failed!"
 		return
 	}
-	if err := this.UserCheck(params.UserID, params.Token); err != nil {
+	if err := this.userCheck(params.UserID, params.Token); err != nil {
 		mylog.Error("requestID:%s, UserCheck error:%s", this.GetRequestId(), err.Error())
 		return
 	}
 	demandInfo := dao.DemandInfo{}
-	if err := demandInfo.DeleteDemandInfo(this.GetRequestId(), params.DemandIDs); err != nil {
+	if err := demandInfo.DeleteDemandInfo(this.GetRequestId(), &params.DemandIDs); err != nil {
 		this.Resp.Code = DEMAND_DELETE_ERROR
 		this.Resp.Msg = "delete skill Info failed!"
 		return

@@ -20,7 +20,7 @@ type DemandInfo struct {
 
 const DEMANDSELECTPARAMS = "id,user_id,title,subject_type,class_level,description,demand_status"
 
-func (demand *DemandInfo) GetDemandInfosByUserID(requestID string) ([]DemandInfo, error) {
+func (demand *DemandInfo) GetDemandInfosByUserID(requestID string) (*[]DemandInfo, error) {
 	sql := `SELECT %s FROM user_demand WHERE user_id = %d ORDER BY id DESC`
 	sql = fmt.Sprintf(sql, DEMANDSELECTPARAMS, demand.UserID)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
@@ -39,12 +39,12 @@ func (demand *DemandInfo) GetDemandInfosByUserID(requestID string) ([]DemandInfo
 		return nil, fmt.Errorf(("GetDemandInfo result is null"))
 	}
 	mylog.Info("requestID:%s, GetDemandInfo result:%v", requestID, result)
-	demandInfos := parseDemandResult(result)
+	demandInfos := parseDemandResult(&result)
 
-	return demandInfos, nil
+	return &demandInfos, nil
 }
 
-func (demand DemandInfo) GetDemandInfoByDemandID(requestID string) (DemandInfo, error) {
+func (demand *DemandInfo) GetDemandInfoByDemandID(requestID string) (*DemandInfo, error) {
 	sql := `SELECT %s FROM user_demand WHERE user_id=%d AND id = %d`
 	sql = fmt.Sprintf(sql, DEMANDSELECTPARAMS, demand.UserID, demand.DemandID)
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
@@ -63,12 +63,16 @@ func (demand DemandInfo) GetDemandInfoByDemandID(requestID string) (DemandInfo, 
 		return demand, fmt.Errorf(("GetDemandInfo result is null"))
 	}
 	mylog.Info("requestID:%s, GetDemandInfo result:%v", requestID, result)
-	demandInfos := parseDemandResult(result)
+	demandInfos := parseDemandResult(&result)
 
-	return demandInfos[0], nil
+	if len(demandInfos) > 0 {
+		return &demandInfos[0], nil
+	} else {
+		return nil, fmt.Errorf("demandInfos is nil")
+	}
 }
 
-func (demand DemandInfo) CreateOrUpdateDemandInfo(requestID string) (DemandInfo, error) {
+func (demand *DemandInfo) CreateOrUpdateDemandInfo(requestID string) (*DemandInfo, error) {
 	if demand.DemandID == 0 {
 		demand.DemandID, _ = getLastDemandID(requestID)
 	}
@@ -104,9 +108,9 @@ func (demand DemandInfo) CreateOrUpdateDemandInfo(requestID string) (DemandInfo,
 	return demand, nil
 }
 
-func (demand DemandInfo) DeleteDemandInfo(requestID string, demandIDs []int64) error {
+func (demand *DemandInfo) DeleteDemandInfo(requestID string, demandIDs *[]int64) error {
 	sql := `DELETE FROM user_demand where id  IN ('%s')`
-	sql = fmt.Sprintf(sql, mytypeconv.JoinInt64Array(demandIDs, "','"))
+	sql = fmt.Sprintf(sql, mytypeconv.JoinInt64Array(*demandIDs, "','"))
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
 	o := orm.NewOrm()
@@ -120,9 +124,9 @@ func (demand DemandInfo) DeleteDemandInfo(requestID string, demandIDs []int64) e
 	return nil
 }
 
-func parseDemandResult(data []orm.Params) (demandInfos []DemandInfo) {
-	demandInfos = make([]DemandInfo, 0)
-	for _, value := range data {
+func parseDemandResult(data *[]orm.Params) []DemandInfo {
+	demandInfos := make([]DemandInfo, 0)
+	for _, value := range *data {
 		demand := DemandInfo{
 			DemandID:     mytypeconv.ToInt64(value["id"], 0),
 			UserID:       mytypeconv.ToInt64(value["user_id"], 0),
@@ -135,7 +139,7 @@ func parseDemandResult(data []orm.Params) (demandInfos []DemandInfo) {
 		demandInfos = append(demandInfos, demand)
 	}
 
-	return
+	return demandInfos
 }
 
 func getLastDemandID(requestID string) (int64, error) {

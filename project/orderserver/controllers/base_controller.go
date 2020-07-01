@@ -30,8 +30,9 @@ const (
 
 type BaseController struct {
 	mylog.LogInfo
-	ReqParams []byte
-	Resp      Response
+	ReqParams   []byte
+	ServerToken string
+	Resp        Response
 }
 
 type Response struct {
@@ -42,10 +43,18 @@ type Response struct {
 }
 
 func (bc *BaseController) Prepare(c *gin.Context) {
+	//设置requestid
 	bc.SetRequestId()
+	//设置请求url
 	bc.SetRequestUrl(c.Request.RequestURI)
+	//设置返回requestid
 	bc.Resp.RequestID = bc.GetRequestId()
+	//获取请求参数
 	bc.ReqParams, _ = ioutil.ReadAll(c.Request.Body)
+	//获取header中的token（此token只有server回传）
+	for _, data := range c.Request.Header["serverToken"] {
+		bc.ServerToken = data
+	}
 
 	mylog.Info("requestId:%s, requestUrl:%s, params : %s", bc.GetRequestId(), bc.GetRequestUrl(), string(bc.ReqParams))
 }
@@ -65,8 +74,17 @@ func (bc *BaseController) FinishResponse(c *gin.Context) {
 	mylog.Info("requestUrl:%s, response data:%s", bc.GetRequestUrl(), string(r))
 }
 
-func (bc *BaseController) UserCheck(userID int64, tokenData string) error {
-	if claim, err := token.CheckToken(tokenData); err != nil {
+func (bc *BaseController) CheckToken(userID int64, tokenData string) (err error) {
+	if len(bc.ServerToken) == 0 {
+		err = bc.userCheck(userID, tokenData)
+	} else {
+		err = bc.serverCheck()
+	}
+	return
+}
+
+func (bc *BaseController) userCheck(userID int64, tokenData string) error {
+	if claim, err := token.CheckUserToken(tokenData); err != nil {
 		bc.Resp.Code = TOKEN_CHECK_ERROR
 		bc.Resp.Msg = "token check failed!"
 		return fmt.Errorf("token check failed!")
@@ -74,6 +92,15 @@ func (bc *BaseController) UserCheck(userID int64, tokenData string) error {
 		bc.Resp.Code = USER_CHECK_ERROR
 		bc.Resp.Msg = "user is invilid!"
 		return fmt.Errorf("user is invalid!")
+	}
+	return nil
+}
+
+func (bc *BaseController) serverCheck() error {
+	if _, err := token.CheckServerToken(bc.ServerToken); err != nil {
+		bc.Resp.Code = TOKEN_CHECK_ERROR
+		bc.Resp.Msg = "token check failed!"
+		return fmt.Errorf("token check failed!")
 	}
 	return nil
 }

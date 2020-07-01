@@ -28,11 +28,11 @@ func (this DemandInfoController) UpdateDemandInfosApi(c *gin.Context) {
 		this.Resp.Msg = "Unmarshal request failed!"
 		return
 	}
-	if err := this.UserCheck(params.UserID, params.Token); err != nil {
+	if err := this.userCheck(params.UserID, params.Token); err != nil {
 		mylog.Error("requestID:%s, UserCheck error:%s", this.GetRequestId(), err.Error())
 		return
 	}
-	newDemandInfo := dao.DemandInfo{DemandID: params.DemandID}
+	newDemandInfo := &dao.DemandInfo{DemandID: params.DemandID}
 	if oldDemandInfo, err := newDemandInfo.GetDemandInfoByDemandID(this.GetRequestId()); err != nil {
 		this.Resp.Code = DEMAND_QUERY_ERROR
 		this.Resp.Msg = "get demand Info by demandID failed!"

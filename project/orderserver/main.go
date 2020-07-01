@@ -29,6 +29,7 @@ func main() {
 	)*/
 	etcdReg := etcd.NewRegistry(
 		registry.Addrs(config.EtcdAddress))
+	//初始化go-micro熔断地址
 	myhttp.EtcdAddr = config.EtcdAddress
 	myhttp.ConsulAddr = config.ConsulAddress
 	//注册服务

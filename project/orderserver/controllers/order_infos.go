@@ -28,7 +28,7 @@ func (this GetOrderController)GetOrderInfosApi(c *gin.Context) {
 		return
 	}
 
-	if err:= this.UserCheck(params.UserID, params.Token);err!=nil{
+	if err:= this.userCheck(params.UserID, params.Token);err!=nil{
 		mylog.Error("requestID:%s, UserCheck error:%s", this.GetRequestId(), err.Error())
 		return
 	}

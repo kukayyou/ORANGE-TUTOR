@@ -36,7 +36,7 @@ func (this UserRegisterController) UserRegisterApi(c *gin.Context) {
 		return
 	}
 
-	userInfo := dao.UserInfo{
+	userInfo := &dao.UserInfo{
 		UserName: params.UserName,
 		Passwd:   params.Passwd,
 	}
@@ -52,7 +52,7 @@ func (this UserRegisterController) UserRegisterApi(c *gin.Context) {
 			Passwd:   userInfo.Passwd,
 		}
 		//创建token
-		if userInfo.Token, err = token.CreateToken(userTokenInfo, int64(^uint(0)>>1)); err != nil {
+		if userInfo.Token, err = token.CreateUserToken(userTokenInfo, int64(^uint(0)>>1)); err != nil {
 			this.Resp.Code = USER_REGISTER_ERROR
 			this.Resp.Msg = "create  token failed!"
 			return

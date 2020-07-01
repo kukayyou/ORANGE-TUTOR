@@ -29,12 +29,12 @@ func (this UserInfosController) GetUserInfoApi(c *gin.Context) {
 		this.Resp.Msg = "Unmarshal request failed!"
 		return
 	}
-	if err := this.UserCheck(params.UserID, params.Token); err != nil {
+	if err := this.CheckToken(params.UserID, params.Token); err != nil {
 		mylog.Error("requestID:%s, UserCheck failed!", this.GetRequestId())
 		return
 	}
 
-	userInfo := dao.UserInfo{UserID: params.UserID}
+	userInfo := &dao.UserInfo{UserID: params.UserID}
 	if userInfo, err = userInfo.GetUserInfo(this.GetRequestId()); err != nil {
 		this.Resp.Code = USER_GET_INFOS_ERROR
 		this.Resp.Msg = "GetUserInfo failed!"

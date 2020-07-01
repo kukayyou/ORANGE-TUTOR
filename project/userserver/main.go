@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/kukayyou/commonlib/myconfig"
+	"github.com/kukayyou/commonlib/myhttp"
 	"github.com/kukayyou/commonlib/mylog"
 	"github.com/kukayyou/commonlib/mysql"
+	"github.com/kukayyou/commonlib/token"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/web"
@@ -16,6 +18,7 @@ import (
 )
 
 func main() {
+
 	defer mylog.SugarLogger.Sync()
 	if err:= initMySQL();err != nil{
 		return
@@ -28,6 +31,9 @@ func main() {
 	)*/
 	etcdReg := etcd.NewRegistry(
 		registry.Addrs(config.EtcdAddress))
+	//初始化go-micro熔断地址
+	myhttp.EtcdAddr = config.EtcdAddress
+	myhttp.ConsulAddr = config.ConsulAddress
 	//注册服务
 	microService:= web.NewService(
 		web.Name("api.tutor.com.userserver"),
@@ -53,6 +59,7 @@ func init() {
 	config.LogMaxSize,_ =  myconfig.Config.GetInt("log_max_size")
 	config.LogMaxBackups,_ =  myconfig.Config.GetInt("log_max_backups")
 	mylog.InitLog(config.LogPath,"userserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, int8(config.LogLevel))
+	token.Init(config.EtcdAddress)
 }
 
 func initMySQL() error{

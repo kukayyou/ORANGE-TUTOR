@@ -33,14 +33,19 @@ func (this UserLoginController) UserLoginApi(c *gin.Context) {
 		return
 	}
 
-	userInfo := dao.UserInfo{UserID: params.UserID}
+	userInfo := &dao.UserInfo{UserName: params.UserName, UserID: params.UserID}
 	if userInfo, err = userInfo.GetUserInfo(this.GetRequestId()); err == nil {
+		if userInfo.Passwd != params.Passwd {
+			this.Resp.Code = USER_LOGIN_ERROR
+			this.Resp.Msg = "user or password is wrong!"
+			return
+		}
 		userTokenInfo := token.UserInfo{
 			UserID:   userInfo.UserID,
 			UserName: userInfo.UserName,
 			Passwd:   userInfo.Passwd,
 		}
-		userInfo.Token, _ = token.CreateToken(userTokenInfo, int64(^uint(0)>>1))
+		userInfo.Token, _ = token.CreateUserToken(userTokenInfo, int64(^uint(0)>>1))
 	} else {
 		this.Resp.Code = USER_LOGIN_ERROR
 		this.Resp.Msg = "get user info failed!"

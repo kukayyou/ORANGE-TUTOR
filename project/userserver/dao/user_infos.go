@@ -25,9 +25,9 @@ type UserInfo struct {
 
 const USERSELECTPARAMS = "user_id,user_type,user_name,passwd,mobile,sex,age,email,university,nick_name,location,profile_pic"
 
-func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) {
-	sql := `SELECT %s FROM user WHERE user_id = %d`
-	sql = fmt.Sprintf(sql, USERSELECTPARAMS, uc.UserID)
+func (uc *UserInfo) GetUserInfo(requestID string) (userInfo *UserInfo, err error) {
+	sql := `SELECT %s FROM user WHERE user_id = %d or user_name = '%s'`
+	sql = fmt.Sprintf(sql, USERSELECTPARAMS, uc.UserID, mytypeconv.MysqlEscapeString(uc.UserName))
 
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
@@ -45,16 +45,16 @@ func (uc UserInfo) GetUserInfo(requestID string) (userInfo UserInfo, err error) 
 		return userInfo, fmt.Errorf(("GetUserInfo result is null"))
 	}
 	mylog.Info("requestID:%s, GetUserInfo result:%v", requestID, result)
-	userInfos := parseResult(result)
+	userInfos := parseResult(&result)
 
-	return userInfos[0], nil
+	return &userInfos[0], nil
 }
 
-func (uc UserInfo) GetUserInfoByUserIDs(requestID string, userIDs []int64) (userInfos []UserInfo, err error) {
+func (uc *UserInfo) GetUserInfoByUserIDs(requestID string, userIDs *[]int64) (userInfos []UserInfo, err error) {
 	var sql string
-	if len(userIDs) > 0 {
+	if len(*userIDs) > 0 {
 		sql = `SELECT %s FROM user WHERE user_id IN ('%s')`
-		sql = fmt.Sprintf(sql, USERSELECTPARAMS, mytypeconv.JoinInt64Array(userIDs, "','"))
+		sql = fmt.Sprintf(sql, USERSELECTPARAMS, mytypeconv.JoinInt64Array(*userIDs, "','"))
 	} else {
 		return nil, fmt.Errorf("UserIDs is nil")
 	}
@@ -75,12 +75,12 @@ func (uc UserInfo) GetUserInfoByUserIDs(requestID string, userIDs []int64) (user
 		return nil, fmt.Errorf(("GetUserInfo result is null"))
 	}
 	mylog.Info("requestID:%s, GetUserInfo result:%v", requestID, result)
-	userInfos = parseResult(result)
+	userInfos = parseResult(&result)
 
 	return userInfos, nil
 }
 
-func (uc UserInfo) CreateOrUpdateUserInfo(requestID string) error {
+func (uc *UserInfo) CreateOrUpdateUserInfo(requestID string) error {
 	sql := `INSERT INTO user (%s) VALUES (%d,%d,'%s','%s','%s','%s',%d,'%s','%s','%s','%s','%s') ON DUPLICATE KEY UPDATE user_type=%d,user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s',nick_name='%s',location='%s',profile_pic='%s'`
 	sql = fmt.Sprintf(sql,
 		USERSELECTPARAMS,
@@ -120,7 +120,7 @@ func (uc UserInfo) CreateOrUpdateUserInfo(requestID string) error {
 	return nil
 }
 
-func (uc UserInfo) RegisterUserInfo(requestID string) (userInfo UserInfo, err error) {
+func (uc *UserInfo) RegisterUserInfo(requestID string) (userInfo *UserInfo, err error) {
 	if uc.UserID, err = getLastUserID(requestID); err != nil {
 		mylog.Error("requestID:%s, create userId failed, error:%s", requestID, err.Error())
 		return uc, err
@@ -160,9 +160,9 @@ func getLastUserID(requestID string) (int64, error) {
 	return userID, nil
 }
 
-func parseResult(data []orm.Params) (userInfos []UserInfo) {
+func parseResult(data *[]orm.Params) (userInfos []UserInfo) {
 	userInfos = make([]UserInfo, 0)
-	for _, value := range data {
+	for _, value := range *data {
 		userInfo := UserInfo{
 			UserID:     mytypeconv.ToInt64(value["user_id"], 0),
 			UserType:   mytypeconv.ToInt64(value["user_type"], 0),

@@ -9,7 +9,7 @@ import (
 )
 
 type UpdateUserInfosRequest struct {
-	UserID     int64       `json:"UserId"`
+	UserID     string      `json:"UserId"`
 	Token      string      `json:"token"`
 	UpdateData interface{} `json:"updateData"`
 }

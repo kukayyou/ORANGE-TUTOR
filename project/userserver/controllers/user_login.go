@@ -13,7 +13,7 @@ type UserLoginController struct {
 }
 
 type LoginRequest struct {
-	UserID   int64  `json:"userId"`
+	UserID   string  `json:"userId"`
 	UserName string `json:"userName"`
 	Passwd   string `json:"passwd"`
 }
@@ -42,8 +42,6 @@ func (this UserLoginController) UserLoginApi(c *gin.Context) {
 		}
 		userTokenInfo := token.UserInfo{
 			UserID:   userInfo.UserID,
-			UserName: userInfo.UserName,
-			Passwd:   userInfo.Passwd,
 		}
 		userInfo.Token, _ = token.CreateUserToken(userTokenInfo, int64(^uint(0)>>1))
 	} else {

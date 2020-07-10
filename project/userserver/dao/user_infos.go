@@ -8,7 +8,7 @@ import (
 )
 
 type UserInfo struct {
-	UserID     int64  `json:"userId"`
+	UserID     string `json:"userId"`
 	UserType   int64  `json:"userType"`   //0：大学生家教，1：家长
 	UserName   string `json:"userName"`   //不支持修改
 	NickName   string `json:"nickName"`   //昵称
@@ -26,7 +26,7 @@ type UserInfo struct {
 const USERSELECTPARAMS = "user_id,user_type,user_name,passwd,mobile,sex,age,email,university,nick_name,location,profile_pic"
 
 func (uc *UserInfo) GetUserInfo(requestID string) (userInfo *UserInfo, err error) {
-	sql := `SELECT %s FROM user WHERE user_id = %d or user_name = '%s'`
+	sql := `SELECT %s FROM user WHERE user_id = '%s' or user_name = '%s'`
 	sql = fmt.Sprintf(sql, USERSELECTPARAMS, uc.UserID, mytypeconv.MysqlEscapeString(uc.UserName))
 
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
@@ -81,7 +81,7 @@ func (uc *UserInfo) GetUserInfoByUserIDs(requestID string, userIDs *[]int64) (us
 }
 
 func (uc *UserInfo) CreateOrUpdateUserInfo(requestID string) error {
-	sql := `INSERT INTO user (%s) VALUES (%d,%d,'%s','%s','%s','%s',%d,'%s','%s','%s','%s','%s') ON DUPLICATE KEY UPDATE user_type=%d,user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s',nick_name='%s',location='%s',profile_pic='%s'`
+	sql := `INSERT INTO user (%s) VALUES ('%s',%d,'%s','%s','%s','%s',%d,'%s','%s','%s','%s','%s') ON DUPLICATE KEY UPDATE user_type=%d,user_name='%s',passwd='%s',mobile='%s',sex='%s',age=%d,email='%s',university='%s',nick_name='%s',location='%s',profile_pic='%s'`
 	sql = fmt.Sprintf(sql,
 		USERSELECTPARAMS,
 		uc.UserID,
@@ -133,7 +133,7 @@ func (uc *UserInfo) RegisterUserInfo(requestID string) (userInfo *UserInfo, err 
 	return uc, nil
 }
 
-func getLastUserID(requestID string) (int64, error) {
+func getLastUserID(requestID string) (string, error) {
 	sql := `SELECT user_id FROM user order by user_id DESC limit 1`
 	mylog.Info("requestID %s, sql:%s", requestID, sql)
 
@@ -145,10 +145,10 @@ func getLastUserID(requestID string) (int64, error) {
 	o := orm.NewOrm()
 	if num, err := o.Raw(sql).ValuesFlat(&result); err != nil {
 		mylog.Error("requestID:%s, getLastUserID return error:%s", requestID, err.Error())
-		return 0, err
+		return "", err
 	} else if num <= 0 {
 		mylog.Error("requestID:%s, getLastUserID result is null", requestID)
-		return 0, fmt.Errorf(("getLastUserID result is null"))
+		return "", fmt.Errorf(("getLastUserID result is null"))
 	}
 	mylog.Info("requestID:%s, getLastUserID result:%v", requestID, result)
 
@@ -157,14 +157,14 @@ func getLastUserID(requestID string) (int64, error) {
 	} else {
 		userID = mytypeconv.ToInt64(result[0], 0) + 1
 	}
-	return userID, nil
+	return mytypeconv.ToString(userID), nil
 }
 
 func parseResult(data *[]orm.Params) (userInfos []UserInfo) {
 	userInfos = make([]UserInfo, 0)
 	for _, value := range *data {
 		userInfo := UserInfo{
-			UserID:     mytypeconv.ToInt64(value["user_id"], 0),
+			UserID:     mytypeconv.ToString(value["user_id"]),
 			UserType:   mytypeconv.ToInt64(value["user_type"], 0),
 			UserName:   mytypeconv.ToString(value["user_name"]),
 			Passwd:     mytypeconv.ToString(value["passwd"]),

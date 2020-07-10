@@ -36,7 +36,7 @@ type BaseController struct {
 }
 
 type Response struct {
-	Code      int         `json:"code"`      //错误码
+	Code      int64         `json:"code"`      //错误码
 	Msg       string      `json:"msg"`       //错误信息
 	RequestID string      `json:"requestId"` //请求id
 	Data      interface{} `json:"data"`      //返回数据
@@ -65,8 +65,8 @@ func (bc *BaseController) FinishResponse(c *gin.Context) {
 	}
 	c.JSON(200,
 		gin.H{
-			"code":      bc.Resp.Code,
-			"msg":       bc.Resp.Msg,
+			"errcode":      bc.Resp.Code,
+			"errmsg":       bc.Resp.Msg,
 			"requestId": bc.Resp.RequestID,
 			"data":      bc.Resp.Data,
 		})
@@ -74,7 +74,7 @@ func (bc *BaseController) FinishResponse(c *gin.Context) {
 	mylog.Info("requestUrl:%s, response data:%s", bc.GetRequestUrl(), string(r))
 }
 
-func (bc *BaseController) CheckToken(userID int64, tokenData string) (err error) {
+func (bc *BaseController) CheckToken(userID, tokenData string) (err error) {
 	if len(bc.ServerToken) == 0 {
 		err = bc.userCheck(userID, tokenData)
 	} else {
@@ -83,7 +83,7 @@ func (bc *BaseController) CheckToken(userID int64, tokenData string) (err error)
 	return
 }
 
-func (bc *BaseController) userCheck(userID int64, tokenData string) error {
+func (bc *BaseController) userCheck(userID, tokenData string) error {
 	if claim, err := token.CheckUserToken(tokenData); err != nil {
 		bc.Resp.Code = TOKEN_CHECK_ERROR
 		bc.Resp.Msg = "token check failed!"

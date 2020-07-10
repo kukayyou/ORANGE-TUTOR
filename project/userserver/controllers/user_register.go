@@ -48,8 +48,6 @@ func (this UserRegisterController) UserRegisterApi(c *gin.Context) {
 	} else {
 		userTokenInfo := token.UserInfo{
 			UserID:   userInfo.UserID,
-			UserName: userInfo.UserName,
-			Passwd:   userInfo.Passwd,
 		}
 		//创建token
 		if userInfo.Token, err = token.CreateUserToken(userTokenInfo, int64(^uint(0)>>1)); err != nil {

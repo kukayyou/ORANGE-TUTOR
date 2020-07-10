@@ -10,17 +10,25 @@ import (
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/etcd"
 	"github.com/micro/go-micro/web"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 
 	"userserver/config"
 	//"github.com/micro/go-plugins/registry/consul"
 	"userserver/routers"
+	"context"
 )
 
 func main() {
 
 	defer mylog.SugarLogger.Sync()
+
 	if err:= initMySQL();err != nil{
+		return
+	}
+	//初始化，mongdb
+	if err:= InitMongodb();err != nil{
 		return
 	}
 	//初始化路由
@@ -50,6 +58,15 @@ func main() {
 }
 
 func init() {
+	//加载配置文件
+	initConfig()
+	//初始化日志
+	mylog.InitLog(config.LogPath,"userserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, int8(config.LogLevel))
+	//初始化token
+	token.Init(config.EtcdAddress)
+}
+
+func initConfig(){
 	myconfig.LoadConfig("./conf/config.conf")
 	config.ConsulAddress = myconfig.Config.GetString("consul_address")
 	config.EtcdAddress = myconfig.Config.GetString("etcd_address")
@@ -58,10 +75,15 @@ func init() {
 	config.LogMaxAge,_ =  myconfig.Config.GetInt("log_max_age")
 	config.LogMaxSize,_ =  myconfig.Config.GetInt("log_max_size")
 	config.LogMaxBackups,_ =  myconfig.Config.GetInt("log_max_backups")
-	mylog.InitLog(config.LogPath,"userserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, int8(config.LogLevel))
-	token.Init(config.EtcdAddress)
+	config.MongoReplicas = myconfig.Config.GetString("mongo_replicas")
+	config.MongoMaxPoolSize,_ = myconfig.Config.GetInt64("mongo_maxPoolSize")
+	config.MongoMinPoolSize,_ = myconfig.Config.GetInt64("mongo_minPoolSize")
+	config.AppID = myconfig.Config.GetString("appid")
+	config.AppSecret = myconfig.Config.GetString("appsecret")
+	config.WxDomain = myconfig.Config.GetString("wx_domain")
 }
 
+//初始化mysql
 func initMySQL() error{
 	cons, err := myconfig.Config.GetInt("mysql_cons")
 	if err != nil {
@@ -82,5 +104,42 @@ func initMySQL() error{
 	}
 	mylog.Info("initialize connection pool success")
 
+	return nil
+}
+
+func InitMongodb() (err error) {
+	//链接单节点mongdb集群
+	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	Pool, err = mongo.Connect(ctx,
+		options.Client().
+			ApplyURI(config.MongoReplicas).
+			SetMaxPoolSize(uint64(config.MongoMaxPoolSize)).
+			SetMinPoolSize(uint64(config.MongoMinPoolSize)))
+	if err != nil {
+		return err
+	}
+	err = Pool.Ping(ctx, readpref.Primary())
+	if err != nil {
+		return err
+	}*/
+	//链接单节点mongdb
+	// Set client options
+	clientOptions := options.Client().ApplyURI(config.MongoReplicas)
+
+	// Connect to MongoDB
+	config.Client, err = mongo.Connect(context.TODO(), clientOptions)
+
+	if err != nil {
+		mylog.Error(err.Error())
+	}
+
+	// Check the connection
+	err = config.Client.Ping(context.TODO(), nil)
+
+	if err != nil {
+		mylog.Error(err.Error())
+	}
+	mylog.Info("mongodb init successfully")
 	return nil
 }

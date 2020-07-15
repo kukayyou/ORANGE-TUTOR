@@ -1,0 +1,21 @@
+采用mongdb作为存储数据库
+
+用户信息表
+{
+"_id":			//主键，自增
+"openId":"",	//微信登录返回的openid
+"sessionKey":""	//微信登录返回的session_key
+"sex":""		//male or female,不支持修改
+"tokrn":""		//server生成的token
+}
+
+瓶子表
+{
+"_id":""			//主键，自增
+"fromUserId":""		//发送方用户的openId
+"toUserId":""		//接受方用户的openId
+"content":""		//内容
+"timeStamp":		//时间戳，精确到毫秒
+"location":["",""]	//位置信息
+}
+

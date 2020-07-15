@@ -20,10 +20,6 @@ import (
 
 func main() {
 	defer mylog.SugarLogger.Sync()
-	//初始化数据库
-	initMySQL()
-	initRedis()
-	InitMongodb()
 	//初始化路由
 	ginRouter := routers.InitRouters()
 	//新建一个consul注册的地址，也就是我们consul服务启动的机器ip+端口
@@ -51,6 +47,16 @@ func main() {
 }
 
 func init() {
+	//初始化配置
+	initConfig()
+	mylog.InitLog(config.LogPath,"notifyserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, int8(config.LogLevel))
+	//初始化数据库
+	initMySQL()
+	initRedis()
+	InitMongodb()
+}
+
+func initConfig(){
 	myconfig.LoadConfig("./conf/config.conf")
 	config.ConsulAddress = myconfig.Config.GetString("consul_address")
 	config.EtcdAddress = myconfig.Config.GetString("etcd_address")
@@ -62,7 +68,6 @@ func init() {
 	config.MongoReplicas = myconfig.Config.GetString("mongo_replicas")
 	config.MongoMaxPoolSize,_ = myconfig.Config.GetInt64("mongo_maxPoolSize")
 	config.MongoMinPoolSize,_ = myconfig.Config.GetInt64("mongo_minPoolSize")
-	mylog.InitLog(config.LogPath,"notifyserver", config.LogMaxAge, config.LogMaxSize, config.LogMaxBackups, int8(config.LogLevel))
 }
 
 func initMySQL() error{
@@ -105,6 +110,7 @@ func initRedis() error {
 
 // InitMongodb 初始化Mongodb连接池
 func InitMongodb() (err error) {
+	//链接单节点mongdb集群
 	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	Pool, err = mongo.Connect(ctx,
@@ -119,6 +125,7 @@ func InitMongodb() (err error) {
 	if err != nil {
 		return err
 	}*/
+	//链接单节点mongdb
 	// Set client options
 	clientOptions := options.Client().ApplyURI(config.MongoReplicas)
 

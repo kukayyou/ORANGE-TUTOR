@@ -18,24 +18,37 @@ type MiniUserInfo struct {
 	Token      string             `json:"token"`
 }
 
-func (mu *MiniUserInfo) Create(requestID string) (*MiniUserInfo, error) {
+func (mu *MiniUserInfo) Create(requestID string) error {
 	collection := config.Client.Database("follow_bottle").Collection("user")
 	_, err := collection.InsertOne(context.TODO(), mu)
 	if err != nil {
 		mylog.Error("requestID:%s, Create mini user info failed. error:%s", requestID, err.Error())
-		return nil, err
+		return err
 	}
-	return mu, nil
+	return nil
 }
 
-func (mu *MiniUserInfo) Update(requestID string) (*MiniUserInfo, error) {
+func (mu *MiniUserInfo) Query(requestID string) (*MiniUserInfo, error) {
+	collection := config.Client.Database("follow_bottle").Collection("user")
+	var result MiniUserInfo
+	err := collection.FindOne(context.TODO(), bson.M{"openid": mu.OpenID}).Decode(&result)
+
+	if err != nil {
+		mylog.Error("requestID:%s, Query mini user info failed. error:%s", requestID, err.Error())
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (mu *MiniUserInfo) Update(requestID string) error {
 	collection := config.Client.Database("follow").Collection("user")
 	updateOpts := options.Update().SetUpsert(true)
 	update := bson.M{"$set": mu}
 	_, err := collection.UpdateOne(context.TODO(), bson.M{"_id": mu.ID}, update, updateOpts)
 	if err != nil {
 		mylog.Error("requestID:%s, Update mini user info failed. error:%s", requestID, err.Error())
-		return nil, err
+		return err
 	}
-	return mu, nil
+	return nil
 }

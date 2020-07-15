@@ -28,7 +28,7 @@ func main() {
 		return
 	}
 	//初始化，mongdb
-	if err:= InitMongodb();err != nil{
+	if err:= initMongodb();err != nil{
 		return
 	}
 	//初始化路由
@@ -107,7 +107,7 @@ func initMySQL() error{
 	return nil
 }
 
-func InitMongodb() (err error) {
+func initMongodb() (err error) {
 	//链接单节点mongdb集群
 	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

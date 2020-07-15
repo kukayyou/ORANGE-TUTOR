@@ -51,10 +51,6 @@ func (bc *BaseController) Prepare(c *gin.Context) {
 	bc.Resp.RequestID = bc.GetRequestId()
 	//获取请求参数
 	bc.ReqParams, _ = ioutil.ReadAll(c.Request.Body)
-	//获取header中的token（此token只有server回传）
-	for _, data := range c.Request.Header["serverToken"] {
-		bc.ServerToken = data
-	}
 
 	mylog.Info("requestId:%s, requestUrl:%s, params : %s", bc.GetRequestId(), bc.GetRequestUrl(), string(bc.ReqParams))
 }

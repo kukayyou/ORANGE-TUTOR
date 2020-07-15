@@ -17,5 +17,6 @@ func InitRouters() *gin.Engine {
 	//微信小程序用户
 	mini := root.Group("/miniuser")
 	mini.POST("/login", controllers.MiniUserLoginController{}.MiniUserLoginApi)
+	mini.POST("/infos", controllers.MiniUserInfosController{}.MiniUserInfosApi)
 	return ginRouter
 }

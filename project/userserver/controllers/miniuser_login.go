@@ -5,6 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kukayyou/commonlib/mylog"
 	"github.com/kukayyou/commonlib/token"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"userserver/config"
 	"userserver/dao"
 	"userserver/usercheck"
@@ -59,26 +61,28 @@ func (this MiniUserLoginController) MiniUserLoginApi(c *gin.Context) {
 		return
 	}
 	//创建token
-	userToken, err := token.CreateUserToken(token.UserInfo{UserID: resp.OpenID}, int64(^uint(0)>>1))
+	userToken, err := token.CreateUserToken(token.UserInfo{UserID: "1000002"}, int64(^uint(0)>>1))
 	if err != nil {
 		this.Resp.Code = USER_LOGIN_ERROR
 		this.Resp.Msg = err.Error()
 		return
 	}
 	miniUserInfo := &dao.MiniUserInfo{
-		OpenID:     resp.OpenID,
-		SessionKey: resp.SessionKey,
+		ID:primitive.NewObjectID(),
+		OpenID:     "1000002",//resp.OpenID,
+		SessionKey: "",//resp.SessionKey,
 		Gender:     params.Gender,
 		City:       params.City,
+		Token:userToken,
 	}
 	//用户信息入库
-	if _, err := miniUserInfo.Create(this.GetRequestId()); err != nil{
+	if err := miniUserInfo.Create(this.GetRequestId()); err != nil{
 		mylog.Error("requestID:%s, MiniUser insert into db failed! error:%s", this.GetRequestId(), err.Error())
 		this.Resp.Code = USER_LOGIN_ERROR
 		this.Resp.Msg = err.Error()
 		return
 	}
 	//返回登录数据
-	this.Resp.Data = MiniUserLoginResp{OpenID:resp.OpenID, Token:userToken}
+	this.Resp.Data = MiniUserLoginResp{OpenID:"1000001", Token:userToken}
 	return
 }
